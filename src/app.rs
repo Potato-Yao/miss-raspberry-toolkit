@@ -1,109 +1,147 @@
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
-    // Example stuff:
-    label: String,
+use crate::views::{ActionsView, DashboardView, SettingsView, ToolsView};
 
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
+/// Which tab is currently selected in the sidebar.
+#[derive(Default, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub enum NavTab {
+    #[default]
+    Dashboard,
+    Actions,
+    Tools,
+    Settings,
 }
 
-impl Default for TemplateApp {
-    fn default() -> Self {
-        Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+impl NavTab {
+    pub const ALL: [Self; 4] = [
+        Self::Dashboard,
+        Self::Actions,
+        Self::Tools,
+        Self::Settings,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Dashboard => "Dashboard",
+            Self::Actions => "Actions",
+            Self::Tools => "Tools",
+            Self::Settings => "Settings",
         }
     }
 }
 
-impl TemplateApp {
+/// We derive Deserialize/Serialize so we can persist app state on shutdown.
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct App {
+    active_tab: NavTab,
+
+    dashboard: DashboardView,
+    actions: ActionsView,
+    tools: ToolsView,
+    settings: SettingsView,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            active_tab: NavTab::default(),
+            dashboard: DashboardView::default(),
+            actions: ActionsView::default(),
+            tools: ToolsView::default(),
+            settings: SettingsView::default(),
+        }
+    }
+}
+
+impl App {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
         // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
-            Default::default()
+            Self::default()
         }
     }
 }
 
-impl eframe::App for TemplateApp {
-    /// Called by the framework to save state before shutdown.
+/// Fixed width of the sidebar in logical pixels.
+const SIDEBAR_WIDTH: f32 = 180.0;
+
+impl eframe::App for App {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // ── Left sidebar ───────────────────────────────────────────
+        egui::Panel::left("nav_sidebar")
+            .exact_size(SIDEBAR_WIDTH)
+            .resizable(false)
+            .show_inside(ui, |ui| {
+                ui.add_space(12.0);
+                ui.vertical_centered(|ui| {
+                    ui.heading("Miss Raspberry Toolkit");
+                });
+                ui.add_space(16.0);
+                ui.separator();
+                ui.add_space(8.0);
+
+                for tab in NavTab::ALL {
+                    let selected = self.active_tab == tab;
+                    let button = egui::Button::new(
+                        egui::RichText::new(tab.label()).size(15.0),
+                    )
+                    .fill(if selected {
+                        ui.visuals().selection.bg_fill
+                    } else {
+                        egui::Color32::TRANSPARENT
+                    })
+                    .min_size(egui::vec2(ui.available_width(), 36.0));
+
+                    if ui.add(button).clicked() {
+                        self.active_tab = tab;
+                    }
+                    ui.add_space(4.0);
+                }
+
+                // ── Hardware monitor (bottom) ──────────────────────
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                    ui.add_space(6.0);
+
+                    // Rows are added bottom-to-top in this layout,
+                    // so BAT first, then GPU, then CPU, then separator.
+                    hw_row(ui, "BAT", "---%", "---");
+                    hw_row(ui, "GPU", "---°C", "---W");
+                    hw_row(ui, "CPU", "---°C", "---W");
+
+                    ui.add_space(2.0);
+                    ui.separator();
+                });
+            });
+
+        // ── Right content area ─────────────────────────────────────
+        egui::CentralPanel::default().show_inside(ui, |ui| {
+            ui.add_space(8.0);
+            match self.active_tab {
+                NavTab::Dashboard => self.dashboard.ui(ui),
+                NavTab::Actions => self.actions.ui(ui),
+                NavTab::Tools => self.tools.ui(ui),
+                NavTab::Settings => self.settings.ui(ui),
+            }
+        });
+    }
+
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
-
-    /// Called each time the UI needs repainting, which may be many times per second.
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
-
-        egui::Panel::top("top_panel").show_inside(ui, |ui| {
-            // The top panel is often a good place for a menu bar:
-
-            egui::MenuBar::new().ui(ui, |ui| {
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("Quit").clicked() {
-                            ui.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
-                    });
-                    ui.add_space(16.0);
-                }
-
-                egui::widgets::global_theme_preference_buttons(ui);
-            });
-        });
-
-        egui::CentralPanel::default().show_inside(ui, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
-
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
-            });
-
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
-
-            ui.separator();
-
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/main/",
-                "Source code."
-            ));
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                powered_by_egui_and_eframe(ui);
-                egui::warn_if_debug_build(ui);
-            });
-        });
-    }
 }
 
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
+/// One row inside the sidebar hardware monitor.
+///
+/// `label`: e.g. "CPU", `col1`/`col2`: the two value columns.
+fn hw_row(ui: &mut egui::Ui, label: &str, col1: &str, col2: &str) {
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
+        let mono = egui::FontId::monospace(12.0);
+        ui.label(egui::RichText::new(label).font(mono.clone()).strong());
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(egui::RichText::new(col2).font(mono.clone()));
+            ui.label(egui::RichText::new(col1).font(mono));
+        });
     });
 }
