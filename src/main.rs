@@ -1,10 +1,13 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use eframe::Error::AppCreation;
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    multimeter_engine::engine_init().map_err(|e| AppCreation(e.into()))?;
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -55,7 +58,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(miss_raspberry_toolkit::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(miss_raspberry_toolkit::App::new(cc)))),
             )
             .await;
 

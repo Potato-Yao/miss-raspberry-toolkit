@@ -1,4 +1,5 @@
 use super::card::{CardPanel, CardWidth};
+use crate::sensor_data::{SensorData, bat_health_pct, fmt_text, fmt_value};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct DashboardView;
@@ -9,12 +10,6 @@ const CARD_HEIGHT: f32 = 200.0;
 /// Placeholder shown when a value is not yet available.
 const DEFAULT_VALUE: &str = "---";
 
-/// Return a placeholder string with an optional unit suffix,
-/// e.g. `placeholder("°C")` → `"---°C"`, `placeholder("")` → `"---"`.
-fn placeholder(unit: &str) -> String {
-    format!("{DEFAULT_VALUE}{unit}")
-}
-
 /// Estimate card height for a given number of content rows.
 fn card_height_for_rows(rows: usize) -> f32 {
     // 24 px inner margin (12 top + 12 bottom)
@@ -24,19 +19,19 @@ fn card_height_for_rows(rows: usize) -> f32 {
 }
 
 impl DashboardView {
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, data: &SensorData) {
         CardPanel::show(ui, CARD_HEIGHT, |panel, ui| {
             panel.card(ui, "CPU", CardWidth::Half, |ui| {
-                info_row(ui, "Temperature", &placeholder("°C"));
-                info_row(ui, "Power", &placeholder("W"));
-                info_row(ui, "Voltage", &placeholder("V"));
-                info_row(ui, "Clock", &placeholder("MHz"));
+                info_row(ui, "Temperature", &fmt_value(data.cpu_temperature, 1, "°C"));
+                info_row(ui, "Power", &fmt_value(data.cpu_power, 1, "W"));
+                info_row(ui, "Voltage", &fmt_value(data.cpu_voltage, 3, "V"));
+                info_row(ui, "Clock", &fmt_value(data.cpu_clock, 0, "MHz"));
             });
 
             panel.card(ui, "GPU", CardWidth::Half, |ui| {
-                info_row(ui, "Temperature", &placeholder("°C"));
-                info_row(ui, "Power", &placeholder("W"));
-                info_row(ui, "Clock", &placeholder("MHz"));
+                info_row(ui, "Temperature", &fmt_value(data.gpu_temperature, 1, "°C"));
+                info_row(ui, "Power", &fmt_value(data.gpu_power, 1, "W"));
+                info_row(ui, "Clock", &fmt_value(data.gpu_clock, 0, "MHz"));
             });
 
             panel.card(ui, "Fans", CardWidth::Half, |ui| {
@@ -44,17 +39,17 @@ impl DashboardView {
             });
 
             panel.card(ui, "Battery", CardWidth::Half, |ui| {
-                info_row(ui, "Current capacity", &placeholder("mAh"));
-                info_row(ui, "Maximum capacity", &placeholder("mAh"));
-                info_row(ui, "Health percentage", &placeholder("%"));
-                info_row(ui, "Cycle count", &placeholder(""));
-                info_row(ui, "Is charging", &placeholder(""));
+                info_row(ui, "Current capacity", &fmt_value(data.bat_capacity_remain, 0, "mAh"));
+                info_row(ui, "Maximum capacity", &fmt_value(data.bat_capacity_max, 0, "mAh"));
+                info_row(ui, "Health percentage", &fmt_value(bat_health_pct(data), 1, "%"));
+                info_row(ui, "Discharge rate", &fmt_value(data.bat_rate, 1, "W"));
+                info_row(ui, "State", fmt_text(&data.bat_state));
             });
 
             // ── System + Disk (half-width pair) ─────────────────────
             panel.card(ui, "System", CardWidth::Half, |ui| {
-                info_row(ui, "OS", &placeholder(""));
-                info_row(ui, "Activation", &placeholder(""));
+                info_row(ui, "OS", DEFAULT_VALUE);
+                info_row(ui, "Activation", fmt_text(&data.os_activated));
             });
 
             // Placeholder disk list – eventually populated at runtime.
@@ -62,7 +57,7 @@ impl DashboardView {
             let disk_h = card_height_for_rows(disks.len()).max(CARD_HEIGHT);
             panel.card_with_height(ui, "Disk", CardWidth::Half, disk_h, |ui| {
                 for &idx in disks {
-                    disk_row(ui, idx, &placeholder("GB"), &placeholder("%"));
+                    disk_row(ui, idx, DEFAULT_VALUE, DEFAULT_VALUE);
                 }
             });
 
@@ -75,10 +70,10 @@ impl DashboardView {
                         partition_row(
                             ui,
                             name,
-                            &placeholder("GB"),
-                            &placeholder("GB"),
-                            &placeholder("%"),
-                            &placeholder(""),
+                            DEFAULT_VALUE,
+                            DEFAULT_VALUE,
+                            DEFAULT_VALUE,
+                            DEFAULT_VALUE,
                         );
                     }
                 });

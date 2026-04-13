@@ -1,3 +1,4 @@
+use crate::sensor_data::{SensorData, fmt_value};
 use crate::views::{ActionsView, DashboardView, SettingsView, ToolsView};
 
 /// Which tab is currently selected in the sidebar.
@@ -38,6 +39,10 @@ pub struct App {
     actions: ActionsView,
     tools: ToolsView,
     settings: SettingsView,
+
+    /// Live sensor readings, refreshed once per frame.
+    #[serde(skip)]
+    sensor_data: SensorData,
 }
 
 impl Default for App {
@@ -48,6 +53,7 @@ impl Default for App {
             actions: ActionsView::default(),
             tools: ToolsView::default(),
             settings: SettingsView::default(),
+            sensor_data: SensorData::default(),
         }
     }
 }
@@ -69,6 +75,9 @@ const SIDEBAR_WIDTH: f32 = 180.0;
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // ── Refresh sensor data once per frame ────────────────────
+        self.sensor_data.refresh();
+
         // ── Left sidebar ───────────────────────────────────────────
         egui::Panel::left("nav_sidebar")
             .exact_size(SIDEBAR_WIDTH)
@@ -101,14 +110,34 @@ impl eframe::App for App {
                 }
 
                 // ── Hardware monitor (bottom) ──────────────────────
+                let data = &self.sensor_data;
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     ui.add_space(6.0);
 
                     // Rows are added bottom-to-top in this layout,
                     // so BAT first, then GPU, then CPU, then separator.
-                    hw_row(ui, "BAT", "---%", "---");
-                    hw_row(ui, "GPU", "---°C", "---W");
-                    hw_row(ui, "CPU", "---°C", "---W");
+                    hw_row(
+                        ui,
+                        "BAT",
+                        &fmt_value(
+                            crate::sensor_data::bat_health_pct(data),
+                            0,
+                            "%",
+                        ),
+                        &fmt_value(data.bat_rate, 1, "W"),
+                    );
+                    hw_row(
+                        ui,
+                        "GPU",
+                        &fmt_value(data.gpu_temperature, 0, "°C"),
+                        &fmt_value(data.gpu_power, 1, "W"),
+                    );
+                    hw_row(
+                        ui,
+                        "CPU",
+                        &fmt_value(data.cpu_temperature, 0, "°C"),
+                        &fmt_value(data.cpu_power, 1, "W"),
+                    );
 
                     ui.add_space(2.0);
                     ui.separator();
@@ -116,10 +145,11 @@ impl eframe::App for App {
             });
 
         // ── Right content area ─────────────────────────────────────
+        let sensor_data = self.sensor_data.clone();
         egui::CentralPanel::default().show_inside(ui, |ui| {
             ui.add_space(8.0);
             match self.active_tab {
-                NavTab::Dashboard => self.dashboard.ui(ui),
+                NavTab::Dashboard => self.dashboard.ui(ui, &sensor_data),
                 NavTab::Actions => self.actions.ui(ui),
                 NavTab::Tools => self.tools.ui(ui),
                 NavTab::Settings => self.settings.ui(ui),

@@ -1,0 +1,3 @@
+[submodule "deps/multimeter_engine"]
+	path = deps/multimeter_engine
+	url = https://github.com/Potato-Yao/multimeter-engine
