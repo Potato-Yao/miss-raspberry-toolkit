@@ -39,8 +39,8 @@ impl DashboardView {
             });
 
             panel.card(ui, "Battery", CardWidth::Half, |ui| {
-                info_row(ui, "Current capacity", &fmt_value(data.bat_capacity_remain, 0, "mAh"));
-                info_row(ui, "Maximum capacity", &fmt_value(data.bat_capacity_max, 0, "mAh"));
+                info_row(ui, "Current capacity", &fmt_value(data.bat_capacity_remain, 0, "Wh"));
+                info_row(ui, "Maximum capacity", &fmt_value(data.bat_capacity_max, 0, "Wh"));
                 info_row(ui, "Health percentage", &fmt_value(bat_health_pct(data), 1, "%"));
                 info_row(ui, "Discharge rate", &fmt_value(data.bat_rate, 1, "W"));
                 info_row(ui, "State", fmt_text(&data.bat_state));
@@ -48,8 +48,11 @@ impl DashboardView {
 
             // ── System + Disk (half-width pair) ─────────────────────
             panel.card(ui, "System", CardWidth::Half, |ui| {
-                info_row(ui, "OS", DEFAULT_VALUE);
+                info_row(ui, "OS", fmt_text(&data.os_name));
                 info_row(ui, "Activation", fmt_text(&data.os_activated));
+                info_row(ui, "Kernel Version", fmt_text(&data.os_kernel_version));
+                info_row(ui, "OS Version", fmt_text(&data.os_version));
+                info_row(ui, "Host Name", fmt_text(&data.os_host_name));
             });
 
             // Placeholder disk list – eventually populated at runtime.

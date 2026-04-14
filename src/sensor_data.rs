@@ -46,7 +46,11 @@ pub struct SensorData {
     pub disk_partition_detail: Option<String>,
 
     // ── System ───────────────────────────────────────────────────
+    pub os_name: Option<String>,
     pub os_activated: Option<String>,
+    pub os_kernel_version: Option<String>,
+    pub os_version: Option<String>,
+    pub os_host_name: Option<String>,
 }
 
 impl SensorData {
@@ -89,7 +93,11 @@ impl SensorData {
         self.disk_partition_detail = query_string("disk_partition_detail");
 
         // ── System ───────────────────────────────────────────────
+        self.os_name = query_string("os_name");
         self.os_activated = query_string("os_activated");
+        self.os_kernel_version = query_string("os_kernel_version");
+        self.os_version = query_string("os_version");
+        self.os_host_name = query_string("os_host_name");
     }
 }
 

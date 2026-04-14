@@ -19,8 +19,10 @@ log = "0.4.27"
 # You only need serde if you want app persistence:
 serde = { version = "1.0.219", features = ["derive"] }
 egui_extras = "0.34.1"
+chrono = { version = "0.4", features = ["wasmbind"] }
 
 multimeter-engine = { path = "deps/multimeter_engine" }
+sysinfo = "0.38.4"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

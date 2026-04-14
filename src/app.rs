@@ -43,6 +43,10 @@ pub struct App {
     /// Live sensor readings, refreshed once per frame.
     #[serde(skip)]
     sensor_data: SensorData,
+
+    /// Instant when the app was started, used for uptime display.
+    #[serde(skip, default = "std::time::Instant::now")]
+    start_time: std::time::Instant,
 }
 
 impl Default for App {
@@ -54,6 +58,7 @@ impl Default for App {
             tools: ToolsView::default(),
             settings: SettingsView::default(),
             sensor_data: SensorData::default(),
+            start_time: std::time::Instant::now(),
         }
     }
 }
@@ -109,11 +114,37 @@ impl eframe::App for App {
                     ui.add_space(4.0);
                 }
 
-                // ── Hardware monitor (bottom) ──────────────────────
+                // ── Hardware monitor + clock (bottom) ────────────
                 let data = &self.sensor_data;
+                let start_time = self.start_time;
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                    // Request repaint so the clock updates every second.
+                    ui.ctx().request_repaint();
+
                     ui.add_space(6.0);
 
+                    // ── Time info (very bottom) ──────────────────
+                    let now = chrono::Local::now();
+                    let elapsed = start_time.elapsed();
+                    let hours = elapsed.as_secs() / 3600;
+                    let mins = (elapsed.as_secs() % 3600) / 60;
+                    let secs = elapsed.as_secs() % 60;
+
+                    let mono_small = egui::FontId::monospace(11.0);
+                    ui.label(
+                        egui::RichText::new(format!("Up  {hours:02}:{mins:02}:{secs:02}"))
+                            .font(mono_small.clone())
+                            .weak(),
+                    );
+                    ui.label(
+                        egui::RichText::new(now.format("%H:%M:%S").to_string())
+                            .font(mono_small)
+                            .weak(),
+                    );
+                    ui.add_space(4.0);
+                    ui.separator();
+
+                    // ── Hardware rows ────────────────────────────
                     // Rows are added bottom-to-top in this layout,
                     // so BAT first, then GPU, then CPU, then separator.
                     hw_row(
@@ -124,7 +155,7 @@ impl eframe::App for App {
                             0,
                             "%",
                         ),
-                        &fmt_value(data.bat_rate, 1, "W"),
+                        crate::sensor_data::fmt_text(&data.bat_state),
                     );
                     hw_row(
                         ui,
