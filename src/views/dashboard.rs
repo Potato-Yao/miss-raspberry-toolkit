@@ -1,5 +1,5 @@
 use super::card::{CardPanel, CardWidth};
-use crate::sensor_data::{SensorData, bat_health_pct, fmt_text, fmt_value};
+use crate::sensor_data::{SensorData, bat_health_pct, fmt_bytes, fmt_text, fmt_value};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct DashboardView;
@@ -26,6 +26,7 @@ impl DashboardView {
                 info_row(ui, "Power", &fmt_value(data.cpu_power, 1, "W"));
                 info_row(ui, "Voltage", &fmt_value(data.cpu_voltage, 3, "V"));
                 info_row(ui, "Clock", &fmt_value(data.cpu_clock, 0, "MHz"));
+                info_row(ui, "Usage", &fmt_value(data.cpu_usage, 0, "%"));
             });
 
             panel.card(ui, "GPU", CardWidth::Half, |ui| {
@@ -35,7 +36,7 @@ impl DashboardView {
             });
 
             panel.card(ui, "Fans", CardWidth::Half, |ui| {
-                fan_gauges(ui);
+                fan_gauges(ui, data);
             });
 
             panel.card(ui, "Battery", CardWidth::Half, |ui| {
@@ -55,12 +56,35 @@ impl DashboardView {
                 info_row(ui, "Host Name", fmt_text(&data.os_host_name));
             });
 
-            // Placeholder disk list – eventually populated at runtime.
-            let disks: &[usize] = &[0, 1];
-            let disk_h = card_height_for_rows(disks.len()).max(CARD_HEIGHT);
+            // Disk list populated from engine query "disk_disk".
+            let disk_count = data.disks.len().max(1);
+            let disk_h = card_height_for_rows(disk_count).max(CARD_HEIGHT);
             panel.card_with_height(ui, "Disk", CardWidth::Half, disk_h, |ui| {
-                for &idx in disks {
-                    disk_row(ui, idx, DEFAULT_VALUE, DEFAULT_VALUE);
+                if data.disks.is_empty() {
+                    info_row(ui, "No disks detected", DEFAULT_VALUE);
+                } else {
+                    let mut disk_idx: usize = 0;
+                    let mut removable_idx: usize = 0;
+                    for disk in data.disks.iter() {
+                        let (prefix, idx) = if disk.is_removable {
+                            let i = removable_idx;
+                            removable_idx += 1;
+                            ("Removable", i)
+                        } else {
+                            let i = disk_idx;
+                            disk_idx += 1;
+                            ("Disk", i)
+                        };
+                        disk_row(
+                            ui,
+                            prefix,
+                            idx,
+                            &disk.name,
+                            &fmt_bytes(disk.total_space),
+                            &fmt_bytes(disk.available_space),
+                            &format!("{:.1}%", disk.usage_pct()),
+                        );
+                    }
                 }
             });
 
@@ -97,13 +121,24 @@ fn info_row(ui: &mut egui::Ui, label: &str, value: &str) {
     });
 }
 
-/// One row per disk: `Disk 0   ──GB   ──%`.
-fn disk_row(ui: &mut egui::Ui, index: usize, size: &str, health: &str) {
+/// One row per disk: `Disk 0  Name /dev/nvme0n1p1  Total Size 839.0 GB  Available Size 200.0 GB  62.7%`.
+/// Removable disks are labelled `Removable 0` instead of `Disk 0`.
+fn disk_row(
+    ui: &mut egui::Ui,
+    prefix: &str,
+    index: usize,
+    name: &str,
+    total_size: &str,
+    available_size: &str,
+    usage: &str,
+) {
     ui.horizontal(|ui| {
-        ui.label(format!("Disk {index}"));
+        ui.label(format!("{prefix} {index}"));
+        ui.label(egui::RichText::new(format!("{name}")).monospace().size(11.0));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.label(egui::RichText::new(health).monospace());
-            ui.label(egui::RichText::new(size).monospace());
+            ui.label(egui::RichText::new(usage).monospace());
+            ui.label(egui::RichText::new(format!("Available {available_size}")).monospace());
+            ui.label(egui::RichText::new(format!("Total {total_size}")).monospace());
         });
     });
 }
@@ -132,19 +167,32 @@ fn partition_row(
 // ── Fan gauges ──────────────────────────────────────────────────
 
 /// Draw three fan speed gauges (CPU, Mid, GPU) side by side.
-fn fan_gauges(ui: &mut egui::Ui) {
-    let fans: &[(&str, &str)] = &[("CPU", DEFAULT_VALUE), ("Mid", DEFAULT_VALUE), ("GPU", DEFAULT_VALUE)];
+fn fan_gauges(ui: &mut egui::Ui, data: &SensorData) {
+    /// Assumed maximum RPM for computing the gauge fill fraction.
+    const MAX_RPM: f32 = 9000.0;
+
+    let fans: [(&str, Option<i32>); 3] = [
+        ("CPU", data.fan_cpu),
+        ("Mid", data.fan_mid),
+        ("GPU", data.fan_gpu),
+    ];
     let available = ui.available_size();
     let col_width = available.x / fans.len() as f32;
     let radius = (col_width * 0.35).min(available.y * 0.38);
 
     ui.horizontal(|ui| {
-        for &(label, rpm) in fans {
+        for &(label, rpm) in &fans {
+            let rpm_text = rpm.map_or_else(
+                || DEFAULT_VALUE.to_owned(),
+                |v| v.to_string(),
+            );
+            let progress = rpm.map_or(0.0, |v| (v as f32 / MAX_RPM).clamp(0.0, 1.0));
+
             let (rect, _) = ui.allocate_exact_size(
                 egui::vec2(col_width, available.y),
                 egui::Sense::hover(),
             );
-            draw_fan_gauge(ui, rect, label, rpm, 0.0, radius);
+            draw_fan_gauge(ui, rect, label, &rpm_text, progress, radius);
         }
     });
 }
