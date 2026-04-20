@@ -1,0 +1,62 @@
+# ── App / Navigation ─────────────────────────────────────────────
+app_title = "Miss Raspberry Toolkit"
+tab_dashboard = "Dashboard"
+tab_actions = "Actions"
+tab_tools = "Tools"
+tab_settings = "Settings"
+
+# ── Sidebar hardware monitor ────────────────────────────────────
+hw_cpu = "CPU"
+hw_gpu = "GPU"
+hw_bat = "BAT"
+uptime_prefix = "Up"
+
+# ── Dashboard card titles ───────────────────────────────────────
+card_cpu = "CPU"
+card_gpu = "GPU"
+card_fans = "Fans"
+card_battery = "Battery"
+card_system = "System"
+card_disk = "Disk"
+card_partition = "Partition"
+
+# ── Dashboard labels ────────────────────────────────────────────
+label_temperature = "Temperature"
+label_power = "Power"
+label_voltage = "Voltage"
+label_clock = "Clock"
+label_usage = "Usage"
+label_current_capacity = "Current capacity"
+label_maximum_capacity = "Maximum capacity"
+label_health_percentage = "Health percentage"
+label_discharge_rate = "Discharge rate"
+label_state = "State"
+label_os = "OS"
+label_activation = "Activation"
+label_kernel_version = "Kernel Version"
+label_os_version = "OS Version"
+label_host_name = "Host Name"
+label_no_disks = "No disks detected"
+label_disk = "Disk"
+label_removable = "Removable"
+label_total = "Total %{size}"
+label_available = "Available %{size}"
+label_bitlocker = "BitLocker: %{status}"
+label_rpm = "RPM"
+fan_cpu = "CPU"
+fan_mid = "Mid"
+fan_gpu = "GPU"
+
+# ── Actions view ────────────────────────────────────────────────
+actions_card_title = "External Executables"
+actions_no_tools = "No external tools found."
+
+# ── Tools view ──────────────────────────────────────────────────
+tools_heading = "Tools"
+tools_placeholder = "Tools will appear here."
+
+# ── Settings view ───────────────────────────────────────────────
+settings_heading = "Settings"
+settings_theme = "Theme:"
+settings_language = "Language:"
+

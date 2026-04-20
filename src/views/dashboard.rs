@@ -1,5 +1,6 @@
 use super::card::{CardPanel, CardWidth};
 use crate::sensor_data::{SensorData, bat_health_pct, fmt_bytes, fmt_text, fmt_value};
+use rust_i18n::t;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct DashboardView;
@@ -21,47 +22,79 @@ fn card_height_for_rows(rows: usize) -> f32 {
 impl DashboardView {
     pub fn ui(&mut self, ui: &mut egui::Ui, data: &SensorData) {
         CardPanel::show(ui, CARD_HEIGHT, |panel, ui| {
-            panel.card(ui, "CPU", CardWidth::Half, |ui| {
-                info_row(ui, "Temperature", &fmt_value(data.cpu_temperature, 1, "°C"));
-                info_row(ui, "Power", &fmt_value(data.cpu_power, 1, "W"));
-                info_row(ui, "Voltage", &fmt_value(data.cpu_voltage, 3, "V"));
-                info_row(ui, "Clock", &fmt_value(data.cpu_clock, 0, "MHz"));
-                info_row(ui, "Usage", &fmt_value(data.cpu_usage, 0, "%"));
+            panel.card(ui, &t!("card_cpu"), CardWidth::Half, |ui| {
+                info_row(
+                    ui,
+                    &t!("label_temperature"),
+                    &fmt_value(data.cpu_temperature, 1, "°C"),
+                );
+                info_row(ui, &t!("label_power"), &fmt_value(data.cpu_power, 1, "W"));
+                info_row(
+                    ui,
+                    &t!("label_voltage"),
+                    &fmt_value(data.cpu_voltage, 3, "V"),
+                );
+                info_row(ui, &t!("label_clock"), &fmt_value(data.cpu_clock, 0, "MHz"));
+                info_row(ui, &t!("label_usage"), &fmt_value(data.cpu_usage, 0, "%"));
             });
 
-            panel.card(ui, "GPU", CardWidth::Half, |ui| {
-                info_row(ui, "Temperature", &fmt_value(data.gpu_temperature, 1, "°C"));
-                info_row(ui, "Power", &fmt_value(data.gpu_power, 1, "W"));
-                info_row(ui, "Clock", &fmt_value(data.gpu_clock, 0, "MHz"));
+            panel.card(ui, &t!("card_gpu"), CardWidth::Half, |ui| {
+                info_row(
+                    ui,
+                    &t!("label_temperature"),
+                    &fmt_value(data.gpu_temperature, 1, "°C"),
+                );
+                info_row(ui, &t!("label_power"), &fmt_value(data.gpu_power, 1, "W"));
+                info_row(ui, &t!("label_clock"), &fmt_value(data.gpu_clock, 0, "MHz"));
             });
 
-            panel.card(ui, "Fans", CardWidth::Half, |ui| {
+            panel.card(ui, &t!("card_fans"), CardWidth::Half, |ui| {
                 fan_gauges(ui, data);
             });
 
-            panel.card(ui, "Battery", CardWidth::Half, |ui| {
-                info_row(ui, "Current capacity", &fmt_value(data.bat_capacity_remain, 0, "Wh"));
-                info_row(ui, "Maximum capacity", &fmt_value(data.bat_capacity_max, 0, "Wh"));
-                info_row(ui, "Health percentage", &fmt_value(bat_health_pct(data), 1, "%"));
-                info_row(ui, "Discharge rate", &fmt_value(data.bat_rate, 1, "W"));
-                info_row(ui, "State", fmt_text(&data.bat_state));
+            panel.card(ui, &t!("card_battery"), CardWidth::Half, |ui| {
+                info_row(
+                    ui,
+                    &t!("label_current_capacity"),
+                    &fmt_value(data.bat_capacity_remain, 0, "Wh"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_maximum_capacity"),
+                    &fmt_value(data.bat_capacity_max, 0, "Wh"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_health_percentage"),
+                    &fmt_value(bat_health_pct(data), 1, "%"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_discharge_rate"),
+                    &fmt_value(data.bat_rate, 1, "W"),
+                );
+                info_row(ui, &t!("label_state"), fmt_text(&data.bat_state));
             });
 
             // ── System + Disk (half-width pair) ─────────────────────
-            panel.card(ui, "System", CardWidth::Half, |ui| {
-                info_row(ui, "OS", fmt_text(&data.os_name));
-                info_row(ui, "Activation", fmt_text(&data.os_activated));
-                info_row(ui, "Kernel Version", fmt_text(&data.os_kernel_version));
-                info_row(ui, "OS Version", fmt_text(&data.os_version));
-                info_row(ui, "Host Name", fmt_text(&data.os_host_name));
+            panel.card(ui, &t!("card_system"), CardWidth::Half, |ui| {
+                info_row(ui, &t!("label_os"), fmt_text(&data.os_name));
+                info_row(ui, &t!("label_activation"), fmt_text(&data.os_activated));
+                info_row(
+                    ui,
+                    &t!("label_kernel_version"),
+                    fmt_text(&data.os_kernel_version),
+                );
+                info_row(ui, &t!("label_os_version"), fmt_text(&data.os_version));
+                info_row(ui, &t!("label_host_name"), fmt_text(&data.os_host_name));
             });
 
             // Disk list populated from engine query "disk_disk".
             let disk_count = data.disks.len().max(1);
             let disk_h = card_height_for_rows(disk_count).max(CARD_HEIGHT);
-            panel.card_with_height(ui, "Disk", CardWidth::Half, disk_h, |ui| {
+            panel.card_with_height(ui, &t!("card_disk"), CardWidth::Half, disk_h, |ui| {
                 if data.disks.is_empty() {
-                    info_row(ui, "No disks detected", DEFAULT_VALUE);
+                    info_row(ui, &t!("label_no_disks"), DEFAULT_VALUE);
                 } else {
                     let mut disk_idx: usize = 0;
                     let mut removable_idx: usize = 0;
@@ -69,15 +102,15 @@ impl DashboardView {
                         let (prefix, idx) = if disk.is_removable {
                             let i = removable_idx;
                             removable_idx += 1;
-                            ("Removable", i)
+                            (t!("label_removable").to_string(), i)
                         } else {
                             let i = disk_idx;
                             disk_idx += 1;
-                            ("Disk", i)
+                            (t!("label_disk").to_string(), i)
                         };
                         disk_row(
                             ui,
-                            prefix,
+                            &prefix,
                             idx,
                             &disk.name,
                             &fmt_bytes(disk.total_space),
@@ -92,7 +125,7 @@ impl DashboardView {
             if cfg!(any(target_os = "windows", debug_assertions)) {
                 let partitions: &[&str] = &["C:/", "D:/", "E:/"];
                 let part_h = card_height_for_rows(partitions.len());
-                panel.card_with_height(ui, "Partition", CardWidth::Full, part_h, |ui| {
+                panel.card_with_height(ui, &t!("card_partition"), CardWidth::Full, part_h, |ui| {
                     for &name in partitions {
                         partition_row(
                             ui,
@@ -134,11 +167,20 @@ fn disk_row(
 ) {
     ui.horizontal(|ui| {
         ui.label(format!("{prefix} {index}"));
-        ui.label(egui::RichText::new(format!("{name}")).monospace().size(11.0));
+        ui.label(
+            egui::RichText::new(format!("{name}"))
+                .monospace()
+                .size(11.0),
+        );
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.label(egui::RichText::new(usage).monospace());
-            ui.label(egui::RichText::new(format!("Available {available_size}")).monospace());
-            ui.label(egui::RichText::new(format!("Total {total_size}")).monospace());
+            ui.label(
+                egui::RichText::new(t!("label_available", size = available_size).to_string())
+                    .monospace(),
+            );
+            ui.label(
+                egui::RichText::new(t!("label_total", size = total_size).to_string()).monospace(),
+            );
         });
     });
 }
@@ -156,7 +198,10 @@ fn partition_row(
         ui.label(name);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // right-to-left: last added appears leftmost
-            ui.label(egui::RichText::new(format!("BitLocker: {bitlocker}")).monospace());
+            ui.label(
+                egui::RichText::new(t!("label_bitlocker", status = bitlocker).to_string())
+                    .monospace(),
+            );
             ui.label(egui::RichText::new(pct).monospace());
             ui.label(egui::RichText::new(remain).monospace());
             ui.label(egui::RichText::new(size).monospace());
@@ -171,10 +216,13 @@ fn fan_gauges(ui: &mut egui::Ui, data: &SensorData) {
     /// Assumed maximum RPM for computing the gauge fill fraction.
     const MAX_RPM: f32 = 9000.0;
 
+    let fan_cpu_label = t!("fan_cpu");
+    let fan_mid_label = t!("fan_mid");
+    let fan_gpu_label = t!("fan_gpu");
     let fans: [(&str, Option<i32>); 3] = [
-        ("CPU", data.fan_cpu),
-        ("Mid", data.fan_mid),
-        ("GPU", data.fan_gpu),
+        (&fan_cpu_label, data.fan_cpu),
+        (&fan_mid_label, data.fan_mid),
+        (&fan_gpu_label, data.fan_gpu),
     ];
     let available = ui.available_size();
     let col_width = available.x / fans.len() as f32;
@@ -182,16 +230,11 @@ fn fan_gauges(ui: &mut egui::Ui, data: &SensorData) {
 
     ui.horizontal(|ui| {
         for &(label, rpm) in &fans {
-            let rpm_text = rpm.map_or_else(
-                || DEFAULT_VALUE.to_owned(),
-                |v| v.to_string(),
-            );
+            let rpm_text = rpm.map_or_else(|| DEFAULT_VALUE.to_owned(), |v| v.to_string());
             let progress = rpm.map_or(0.0, |v| (v as f32 / MAX_RPM).clamp(0.0, 1.0));
 
-            let (rect, _) = ui.allocate_exact_size(
-                egui::vec2(col_width, available.y),
-                egui::Sense::hover(),
-            );
+            let (rect, _) =
+                ui.allocate_exact_size(egui::vec2(col_width, available.y), egui::Sense::hover());
             draw_fan_gauge(ui, rect, label, &rpm_text, progress, radius);
         }
     });
@@ -264,7 +307,7 @@ fn draw_fan_gauge(
     painter.text(
         egui::pos2(center.x, center.y + 10.0),
         egui::Align2::CENTER_CENTER,
-        "RPM",
+        &t!("label_rpm"),
         egui::FontId::proportional(9.0),
         ui.visuals().weak_text_color(),
     );
@@ -288,4 +331,3 @@ fn arc_points(
         })
         .collect()
 }
-

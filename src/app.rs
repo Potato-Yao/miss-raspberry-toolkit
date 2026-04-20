@@ -1,5 +1,6 @@
 use crate::sensor_data::{SensorData, fmt_value};
 use crate::views::{ActionsView, DashboardView, SettingsView, ToolsView};
+use rust_i18n::t;
 
 /// Which tab is currently selected in the sidebar.
 #[derive(Default, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -19,12 +20,12 @@ impl NavTab {
         Self::Settings,
     ];
 
-    pub fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            Self::Dashboard => "Dashboard",
-            Self::Actions => "Actions",
-            Self::Tools => "Tools",
-            Self::Settings => "Settings",
+            Self::Dashboard => t!("tab_dashboard").to_string(),
+            Self::Actions => t!("tab_actions").to_string(),
+            Self::Tools => t!("tab_tools").to_string(),
+            Self::Settings => t!("tab_settings").to_string(),
         }
     }
 }
@@ -90,7 +91,7 @@ impl eframe::App for App {
             .show_inside(ui, |ui| {
                 ui.add_space(12.0);
                 ui.vertical_centered(|ui| {
-                    ui.heading("Miss Raspberry Toolkit");
+                    ui.heading(t!("app_title").to_string());
                 });
                 ui.add_space(16.0);
                 ui.separator();
@@ -132,7 +133,7 @@ impl eframe::App for App {
 
                     let mono_small = egui::FontId::monospace(11.0);
                     ui.label(
-                        egui::RichText::new(format!("Up  {hours:02}:{mins:02}:{secs:02}"))
+                        egui::RichText::new(format!("{}  {hours:02}:{mins:02}:{secs:02}", t!("uptime_prefix")))
                             .font(mono_small.clone())
                             .weak(),
                     );
@@ -145,11 +146,9 @@ impl eframe::App for App {
                     ui.separator();
 
                     // ── Hardware rows ────────────────────────────
-                    // Rows are added bottom-to-top in this layout,
-                    // so BAT first, then GPU, then CPU, then separator.
                     hw_row(
                         ui,
-                        "BAT",
+                        &t!("hw_bat"),
                         &fmt_value(
                             crate::sensor_data::bat_health_pct(data),
                             0,
@@ -159,13 +158,13 @@ impl eframe::App for App {
                     );
                     hw_row(
                         ui,
-                        "GPU",
+                        &t!("hw_gpu"),
                         &fmt_value(data.gpu_temperature, 0, "°C"),
                         &fmt_value(data.gpu_power, 1, "W"),
                     );
                     hw_row(
                         ui,
-                        "CPU",
+                        &t!("hw_cpu"),
                         &fmt_value(data.cpu_temperature, 0, "°C"),
                         &fmt_value(data.cpu_power, 1, "W"),
                     );
