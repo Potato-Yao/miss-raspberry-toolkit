@@ -71,9 +71,12 @@ pub struct SensorData {
     pub gpu_usage: Option<f64>,
 
     // ── Memory ───────────────────────────────────────────────────
+    pub mem_total: Option<f64>,
     pub mem_used: Option<f64>,
     pub mem_available: Option<f64>,
     pub mem_percentage: Option<f64>,
+    pub mem_swap_total: Option<f64>,
+    pub mem_swap_used: Option<f64>,
 
     // ── Battery ──────────────────────────────────────────────────
     pub bat_capacity_designed: Option<f64>,
@@ -120,9 +123,12 @@ impl SensorData {
         self.gpu_usage = query_f64("gpu_usage");
 
         // ── Memory ───────────────────────────────────────────────
+        self.mem_total = query_f64("mem_total");
         self.mem_used = query_f64("mem_used");
         self.mem_available = query_f64("mem_available");
         self.mem_percentage = query_f64("mem_percentage");
+        self.mem_swap_total = query_f64("mem_swap_total");
+        self.mem_swap_used = query_f64("mem_swap_used");
 
         // ── Battery ──────────────────────────────────────────────
         self.bat_capacity_designed = query_f64("bat_capacity_designed");

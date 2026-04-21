@@ -11,14 +11,6 @@ const CARD_HEIGHT: f32 = 200.0;
 /// Placeholder shown when a value is not yet available.
 const DEFAULT_VALUE: &str = "---";
 
-/// Estimate card height for a given number of content rows.
-fn card_height_for_rows(rows: usize) -> f32 {
-    // 24 px inner margin (12 top + 12 bottom)
-    // ~36 px header  (title + separator + spacing)
-    // ~22 px per content row
-    60.0 + rows as f32 * 22.0
-}
-
 impl DashboardView {
     pub fn ui(&mut self, ui: &mut egui::Ui, data: &SensorData) {
         CardPanel::show(ui, CARD_HEIGHT, |panel, ui| {
@@ -50,6 +42,34 @@ impl DashboardView {
 
             panel.card(ui, &t!("card_fans"), CardWidth::Half, |ui| {
                 fan_gauges(ui, data);
+            });
+
+            panel.card(ui, &t!("card_memory"), CardWidth::Half, |ui| {
+                info_row(
+                    ui,
+                    &t!("label_total_memory"),
+                    &fmt_value(data.mem_total, 1, "GB"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_used_memory"),
+                    &fmt_value(data.mem_used, 1, "GB"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_remain_memory"),
+                    &fmt_value(data.mem_available, 1, "GB"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_total_swap"),
+                    &fmt_value(data.mem_swap_total, 1, "GB"),
+                );
+                info_row(
+                    ui,
+                    &t!("label_used_swap"),
+                    &fmt_value(data.mem_swap_used, 1, "GB"),
+                );
             });
 
             panel.card(ui, &t!("card_battery"), CardWidth::Half, |ui| {
@@ -90,9 +110,7 @@ impl DashboardView {
             });
 
             // Disk list populated from engine query "disk_disk".
-            let disk_count = data.disks.len().max(1);
-            let disk_h = card_height_for_rows(disk_count).max(CARD_HEIGHT);
-            panel.card_with_height(ui, &t!("card_disk"), CardWidth::Half, disk_h, |ui| {
+            panel.card(ui, &t!("card_disk"), CardWidth::Half, |ui| {
                 if data.disks.is_empty() {
                     info_row(ui, &t!("label_no_disks"), DEFAULT_VALUE);
                 } else {
@@ -124,8 +142,7 @@ impl DashboardView {
             // ── Partition (full-width, Windows-only / debug) ────────
             if cfg!(any(target_os = "windows", debug_assertions)) {
                 let partitions: &[&str] = &["C:/", "D:/", "E:/"];
-                let part_h = card_height_for_rows(partitions.len());
-                panel.card_with_height(ui, &t!("card_partition"), CardWidth::Full, part_h, |ui| {
+                panel.card(ui, &t!("card_partition"), CardWidth::Half, |ui| {
                     for &name in partitions {
                         partition_row(
                             ui,
