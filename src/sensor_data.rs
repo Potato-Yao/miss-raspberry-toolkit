@@ -248,4 +248,3 @@ fn query_disk_array(target: &str) -> Vec<DiskInfo> {
         })
         .collect()
 }
-

@@ -1,4 +1,4 @@
-use crate::sensor_data::{SensorData, fmt_value};
+use crate::sensor_data::{fmt_value, SensorData};
 use crate::views::{ActionsView, DashboardView, SettingsView, ToolsView};
 use rust_i18n::t;
 
@@ -13,12 +13,7 @@ pub enum NavTab {
 }
 
 impl NavTab {
-    pub const ALL: [Self; 4] = [
-        Self::Dashboard,
-        Self::Actions,
-        Self::Tools,
-        Self::Settings,
-    ];
+    pub const ALL: [Self; 4] = [Self::Dashboard, Self::Actions, Self::Tools, Self::Settings];
 
     pub fn label(self) -> String {
         match self {
@@ -83,6 +78,7 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         // ── Refresh sensor data once per frame ────────────────────
         self.sensor_data.refresh();
+        self.tools.update_monitor_plot(&self.sensor_data);
 
         // ── Left sidebar ───────────────────────────────────────────
         egui::Panel::left("nav_sidebar")
@@ -99,15 +95,13 @@ impl eframe::App for App {
 
                 for tab in NavTab::ALL {
                     let selected = self.active_tab == tab;
-                    let button = egui::Button::new(
-                        egui::RichText::new(tab.label()).size(15.0),
-                    )
-                    .fill(if selected {
-                        ui.visuals().selection.bg_fill
-                    } else {
-                        egui::Color32::TRANSPARENT
-                    })
-                    .min_size(egui::vec2(ui.available_width(), 36.0));
+                    let button = egui::Button::new(egui::RichText::new(tab.label()).size(15.0))
+                        .fill(if selected {
+                            ui.visuals().selection.bg_fill
+                        } else {
+                            egui::Color32::TRANSPARENT
+                        })
+                        .min_size(egui::vec2(ui.available_width(), 36.0));
 
                     if ui.add(button).clicked() {
                         self.active_tab = tab;
@@ -133,14 +127,21 @@ impl eframe::App for App {
 
                     let mono_small = egui::FontId::monospace(11.0);
                     ui.label(
-                        egui::RichText::new(format!("{}  {hours:02}:{mins:02}:{secs:02}", t!("uptime_prefix")))
-                            .font(mono_small.clone())
-                            .weak(),
+                        egui::RichText::new(format!(
+                            "{}  {hours:02}:{mins:02}:{secs:02}",
+                            t!("uptime_prefix")
+                        ))
+                        .font(mono_small.clone())
+                        .weak(),
                     );
                     ui.label(
-                        egui::RichText::new(now.format("%H:%M:%S").to_string())
-                            .font(mono_small)
-                            .weak(),
+                        egui::RichText::new(format!(
+                            "{}  {}",
+                            t!("time_prefix"),
+                            now.format("%H:%M:%S")
+                        ))
+                        .font(mono_small)
+                        .weak(),
                     );
                     ui.add_space(4.0);
                     ui.separator();
@@ -149,11 +150,7 @@ impl eframe::App for App {
                     hw_row(
                         ui,
                         &t!("hw_bat"),
-                        &fmt_value(
-                            crate::sensor_data::bat_health_pct(data),
-                            0,
-                            "%",
-                        ),
+                        &fmt_value(crate::sensor_data::bat_health_pct(data), 0, "%"),
                         crate::sensor_data::fmt_text(&data.bat_state),
                     );
                     hw_row(

@@ -12,9 +12,7 @@ const WINDOWS_TOOLS: [&str; 5] = [
     "win-active",
 ];
 
-const LINUX_TOOLS: [&str; 1] = [
-    "linux_tools",
-];
+const LINUX_TOOLS: [&str; 1] = ["linux_tools"];
 
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -34,7 +32,10 @@ fn main() {
     let is_windows = target_os == "windows";
 
     if !src_root.is_dir() {
-        println!("cargo:warning=externals directory not found at {}, skipping copy", src_root.display());
+        println!(
+            "cargo:warning=externals directory not found at {}, skipping copy",
+            src_root.display()
+        );
         return;
     }
 
@@ -67,4 +68,3 @@ fn main() {
         }
     }
 }
-

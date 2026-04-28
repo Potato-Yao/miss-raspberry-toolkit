@@ -28,7 +28,7 @@ fn main() -> eframe::Result {
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
             Ok(Box::new(miss_raspberry_toolkit::App::new(cc)))
-        } ),
+        }),
     )
 }
 

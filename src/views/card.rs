@@ -62,11 +62,7 @@ impl CardPanel {
     ///     panel.card(ui, "Right", CardWidth::Half, |ui| { ui.label("B"); });
     /// });
     /// ```
-    pub fn show(
-        ui: &mut egui::Ui,
-        card_height: f32,
-        build: impl FnOnce(&mut Self, &mut egui::Ui),
-    ) {
+    pub fn show(ui: &mut egui::Ui, card_height: f32, build: impl FnOnce(&mut Self, &mut egui::Ui)) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let mut panel = Self::begin(ui, card_height);
             build(&mut panel, ui);
@@ -304,5 +300,3 @@ impl CardPanel {
         ui.allocate_rect(total_rect, egui::Sense::hover());
     }
 }
-
-

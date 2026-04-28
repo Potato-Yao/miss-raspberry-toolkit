@@ -42,7 +42,7 @@ impl ActionsView {
                                     let mut program = ExternalProgram::new_transient(
                                         tool_path.clone(),
                                         ProgramKind::Executable,
-                                        vec![vec![]],
+                                        vec![vec![""]],
                                     );
                                     let _ = program.start(0);
                                 }

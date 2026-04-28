@@ -21,7 +21,10 @@ impl SettingsView {
             egui::ComboBox::from_id_salt("language_selector")
                 .selected_text(&selected)
                 .show_ui(ui, |ui| {
-                    if ui.selectable_value(&mut selected, "en".to_string(), "English").changed() {
+                    if ui
+                        .selectable_value(&mut selected, "en".to_string(), "English")
+                        .changed()
+                    {
                         rust_i18n::set_locale(&selected);
                     }
                 });
